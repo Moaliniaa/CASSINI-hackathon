@@ -1,0 +1,114 @@
+% Specify the file name
+fileName = '/Users/mohammadsadeghalinia/Downloads/Iris Stars/Hackathon CASSINI 16-18 May Finland/ENS_ANALYSIS-O3-NOX-Aug2024.nc';
+
+% Get general information about the file
+info = ncinfo(fileName);
+disp('File Information:');
+disp(info);
+
+% Read variables from the .nc file
+longitude = ncread(fileName, 'longitude');
+latitude = ncread(fileName, 'latitude');
+level = ncread(fileName, 'level');
+time = ncread(fileName, 'time');
+o3_conc = ncread(fileName, 'o3_conc');
+no_conc = ncread(fileName, 'no_conc');
+no2_conc = ncread(fileName, 'no2_conc');
+
+% Convert time to readable format (assuming hours since 2024-05-01)
+referenceDate = datetime(2024, 5, 1, 0, 0, 0);  
+time = referenceDate + hours(time);
+
+% Filter the time range: May 1 to May 31 at 12:00
+timeIndices = find(hour(time) == 12 & day(time) >= 1 & day(time) <= 31);
+
+% Find the specific level (5000 m)
+[~, levelIndex] = min(abs(level - 5000));
+
+% Preallocate arrays to store daily averages
+o3_daily_avg = zeros(1, length(timeIndices));
+no_daily_avg = zeros(1, length(timeIndices));
+no2_daily_avg = zeros(1, length(timeIndices));
+
+% Calculate weighted averages for each day
+for idx = 1:length(timeIndices)
+    % Extract the specific slice for each gas
+    O3_slice = squeeze(o3_conc(:, :, levelIndex, timeIndices(idx)))';
+    NO_slice = squeeze(no_conc(:, :, levelIndex, timeIndices(idx)))';
+    NO2_slice = squeeze(no2_conc(:, :, levelIndex, timeIndices(idx)))';
+
+    % Weighted average calculation (mean value over all non-NaN elements)
+    o3_daily_avg(idx) = mean(O3_slice(~isnan(O3_slice)), 'all');
+    no_daily_avg(idx) = mean(NO_slice(~isnan(NO_slice)), 'all');
+    no2_daily_avg(idx) = mean(NO2_slice(~isnan(NO2_slice)), 'all');
+end
+
+% Prepare the x-axis for plotting (dates)
+plotDates = time(timeIndices);
+
+% Geomagnetism Data
+dates = (1:31)';
+dst_intensity = [
+    3.192307692;
+11.5; 6.346153846; -47.73076923; -28.76923077; -6.769230769; 3.615384615;
+7.692307692; 13.38461538; 12.57692308;
+41.19230769;
+-117.5769231;
+-64.65384615;
+-30.84615385;
+-6.115384615;
+-14.84615385;
+6.384615385;
+-1.5;
+-1.538461538;
+-10.38461538;
+-1.884615385;
+7.307692308;
+8.884615385;
+-6.192307692;
+3.846153846;
+7.423076923; 17.19230769; -40.80769231; 2.538461538; -11.65384615; -38.34615385;
+];
+
+% Create a figure with a 4-row subplot layout
+figure;
+
+% Plot Geomagnetism Intensity (Dst factor) as the first subplot
+subplot(3, 1, 1);
+plot(dates, dst_intensity, '-o', 'LineWidth', 2, 'MarkerSize', 6, 'Color', 'k');
+title('Geomagnetism Intensity (Dst Factor) Over 31 Days');
+xlabel('Date (Day of the Month)');
+ylabel('Dst Factor (nT)');
+grid on;
+xticks(1:31);
+xlim([1 31]);
+
+% Plot Ozone (O3) Concentration as the second subplot
+% subplot(4, 1, 2);
+% plot(plotDates, o3_daily_avg, '-o', 'LineWidth', 2, 'Color', 'b');
+% title('Daily Average Ozone (O3) Concentration at 5000 m (12:00)');
+% xlabel('Date');
+% ylabel('O3 Concentration (ppm)');
+% grid on;
+
+% Plot Nitric Oxide (NO) Concentration as the third subplot
+subplot(3, 1, 2);
+plot(plotDates, no_daily_avg, '-o', 'LineWidth', 2, 'Color', 'r');
+title('Daily Average Nitric Oxide (NO) Concentration at 5000 m (12:00)');
+xlabel('Date');
+ylabel('NO Concentration (ppm)');
+grid on;
+
+% Plot Nitrogen Dioxide (NO2) Concentration as the fourth subplot
+subplot(3, 1, 3);
+plot(plotDates, no2_daily_avg, '-o', 'LineWidth', 2, 'Color', 'g');
+title('Daily Average Nitrogen Dioxide (NO2) Concentration at 5000 m (12:00)');
+xlabel('Date');
+ylabel('NO2 Concentration (ppm)');
+grid on;
+
+% Add an overall title for all subplots
+sgtitle('Geomagnetism (Dst) and Atmospheric Gas Concentrations (O3, NO, NO2) from 2024-05-01 to 2024-05-31');
+
+% Display success message
+disp('Linear plots for Dst, O3, NO, and NO2 concentrations have been generated.');
