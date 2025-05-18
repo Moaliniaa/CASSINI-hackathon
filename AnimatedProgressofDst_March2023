@@ -1,0 +1,58 @@
+%% MATLAB Script to Animate Dst Geomagnetic Intensity with Smooth Gradient Vertical Bar
+% Clear workspace and set up variables
+clear; clc;
+
+% Define day numbers and Dst factor for March 2023
+days = 1:31;
+dst = [-12.68, -7.36, -19.84, -9.44, -12.76, -11, -10.16, -2, -12.12, -3.68, -3.8, 7.56, 21.56, 2.04, -11.64, -14.12, -0.84, 2.64, 5.6, 2.32, 13.32, 3.08, -26.04, -102.24, -35.92, -18.4, -10.04, -7.88, 0.12, -2.52, -17.08];
+
+% Prepare video writer
+tmpVideoName = 'Dst_Intensity_March2023_SmoothBar.mp4';
+vid = VideoWriter(tmpVideoName,'MPEG-4');
+vid.FrameRate = 5;
+open(vid);
+
+% Create figure and layout
+gf = figure('Position',[100 100 900 400]);
+t = tiledlayout(1,2,'TileSpacing','compact','Padding','compact');
+
+% Left: Time progression plot
+a1 = nexttile(t,1);
+linePlot = plot(a1,days(1),dst(1),'-o','LineWidth',1.5,'MarkerFaceColor','b');
+hold(a1,'on');
+a1.XLim = [1 31];
+a1.YLim = [-400 40];
+a1.Title.String = 'Dst Geomagnetic Intensity (March 2023)';
+a1.XLabel.String = 'Day of Month';
+a1.YLabel.String = 'Dst (nT)';
+grid(a1,'on');
+
+% Right: Smooth gradient vertical color bar
+a2 = nexttile(t,2);
+gVals = linspace(40,-400,300)'; % gradient steps
+cp = [40; -50; -100; -150; -400];
+cc = [0.9 0.9 0.9; 1.0 0.6 0.2; 1 0 0; 0.6 0 0; 0 0 0];
+gradMap = interp1(cp,cc,gVals,'linear');
+nSteps = length(gVals);
+barWidth = 20;
+barC = repmat((1:nSteps)',1,barWidth);
+imagesc(a2,[0 1],[-400 40],flipud(barC)); % flip so +40 top
+colormap(a2,gradMap);
+axis(a2,'off');
+a2.YDir = 'normal';
+a2.Title.String = 'Intensity Scale';
+a2.YTick = [-400 -150 -100 -50 0 40];
+a2.YTickLabel = {'-400','-150','-100','-50','0','40'};
+
+% Animation loop
+for k = 1:length(days)
+    set(linePlot,'XData',days(1:k),'YData',dst(1:k));
+    drawnow;
+    pause(0.1);
+    frame = getframe(gf);
+    writeVideo(vid,frame);
+end
+
+% Close video file
+close(vid);
+disp(['Video saved as ',tmpVideoName]);
