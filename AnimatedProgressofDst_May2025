@@ -1,0 +1,52 @@
+%% MATLAB Script to Animate Dst Geomagnetic Intensity with Internal Shaded Alert Zones (11–18 May 2025)
+% Clear workspace and set up variables
+clear; clc;
+
+% Define day numbers and Dst factor for 11–18 May 2025
+days = 11:18;
+dst = [-50, -80, -150, -200, -100, -40, -30, -20];
+
+% Prepare video writer
+tmpVideoName = 'Dst_Intensity_11to18_May2025_Alerts.mp4';
+vid = VideoWriter(tmpVideoName,'MPEG-4');
+vid.FrameRate = 5;
+open(vid);
+
+% Create figure and single axis
+gf = figure('Position',[100 100 800 400]);
+ax = axes('Parent',gf);
+hold(ax,'on');
+
+% Define alert zones based on overall X-range: days(1) to days(end)
+xStart = days(1); xEnd = days(end);
+% Warning zone: -90 to -200 (orange)
+patch(ax, [xStart, xEnd, xEnd, xStart], [-90, -90, -200, -200], [1,0.6,0.2], 'FaceAlpha', 0.3, 'EdgeColor','none');
+text(mean([xStart xEnd]), -145, 'Warning Zone', 'HorizontalAlignment','center', 'Color',[1,0.4,0], 'FontWeight','bold');
+% Serious alert: below -200 (red)
+patch(ax, [xStart, xEnd, xEnd, xStart], [-200, -200, -400, -400], [1,0,0], 'FaceAlpha', 0.3, 'EdgeColor','none');
+text(mean([xStart xEnd]), -300, 'Serious Alert', 'HorizontalAlignment','center', 'Color','r', 'FontWeight','bold');
+
+% Configure axis limits and labels
+ax.XLim = [xStart-1, xEnd+1];
+ax.YLim = [-400, 40];
+ax.Title.String = 'Dst Geomagnetic Intensity (11–18 May 2025)';
+ax.XLabel.String = 'Day of Month';
+ax.YLabel.String = 'Dst (nT)';
+grid(ax,'on');
+
+% Initialize line plot
+linePlot = plot(ax, days(1), dst(1), '-o', 'LineWidth', 1.5, 'MarkerFaceColor', 'b');
+
+% Animation loop
+for k = 1:length(days)
+    set(linePlot, 'XData', days(1:k), 'YData', dst(1:k));
+    drawnow;
+    pause(0.1);
+    frame = getframe(gf);
+    writeVideo(vid, frame);
+end
+
+% Close video file
+close(vid);
+
+disp(['Video saved as ', tmpVideoName]);
